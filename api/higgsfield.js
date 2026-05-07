@@ -4,7 +4,8 @@
  *
  * Auth (official): Authorization: Key {api_key}:{api_key_secret}
  *   → HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET, OR one line HIGGSFIELD_CREDENTIALS=key:secret
- * Bearer só se HIGGSFIELD_USE_BEARER=true (a plataforma costuma rejeitar Bearer → 401)
+ * Bearer: HIGGSFIELD_USE_BEARER=true
+ * Só um UUID no Cloud: tente HIGGSFIELD_AUTH_FORMAT=key_only → envia Key uuid: (secret vazio)
  *
  * Optional env overrides for model slugs if your Cloud gallery uses different IDs:
  *   HIGGSFIELD_MODEL_SOUL_CINEMA, HIGGSFIELD_MODEL_SOUL_2
@@ -58,14 +59,19 @@ function resolveAuth() {
     return { ok: true, header: `Bearer ${key}` };
   }
 
+  const authFmt = (process.env.HIGGSFIELD_AUTH_FORMAT || '').toLowerCase().trim();
+  if (authFmt === 'key_only' || authFmt === 'key_empty_secret' || authFmt === 'single') {
+    return { ok: true, header: `Key ${key}:` };
+  }
+
   return {
     ok: false,
     status: 503,
     body: {
       error: 'Credenciais Higgsfield incompletas',
       detail:
-        'A API exige Authorization: Key API_KEY:API_SECRET (ver docs.higgsfield.ai). No Vercel adicione HIGGSFIELD_API_SECRET copiado do Cloud, ou use HIGGSFIELD_CREDENTIALS=key:secret numa linha. Só a key UUID sem secret costuma gerar 401.',
-      docs: 'https://docs.higgsfield.ai/guides/images'
+        'Documentação: Key API_KEY:API_SECRET — https://docs.higgsfield.ai/how-to/introduction — No Cloud, confira se existe um segundo campo (secret) ou export completo. Se o painel só mostrar um UUID, no Vercel defina HIGGSFIELD_AUTH_FORMAT=key_only para tentar Key uuid: (secret vazio). Ou HIGGSFIELD_USE_BEARER=true. Ou HIGGSFIELD_CREDENTIALS=key:secret.',
+      docs: 'https://docs.higgsfield.ai/how-to/introduction'
     }
   };
 }

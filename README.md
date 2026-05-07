@@ -25,6 +25,8 @@ Documentação oficial da API REST: [How to use API](https://docs.higgsfield.ai/
 | `HIGGSFIELD_API_KEY` | Sim (imagens) | API Key do Cloud Higgsfield |
 | `HIGGSFIELD_API_SECRET` | **Sim** (na prática) | Secret do mesmo painel — a API usa `Key key:secret`; só a key → **401** |
 | `HIGGSFIELD_CREDENTIALS` | Alternativa | Uma linha `key:secret` (substitui key+secret separados) |
+| `HIGGSFIELD_AUTH_FORMAT` | Só um ID no painel | `key_only` → envia `Key seu-uuid:` (secret vazio; teste se o backend aceitar) |
+| `HIGGSFIELD_USE_BEARER` | Legado | `true` → `Authorization: Bearer …` |
 | `HIGGSFIELD_MODEL_SOUL_CINEMA` | Não | Override do `model_id` para Soul Cinema (se o padrão der 404) |
 | `HIGGSFIELD_MODEL_SOUL_2` | Não | Override para Soul 2.0 |
 
