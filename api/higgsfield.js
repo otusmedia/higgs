@@ -5,7 +5,7 @@
  * Auth (official): Authorization: Key {api_key}:{api_key_secret}
  *   → HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET, OR one line HIGGSFIELD_CREDENTIALS=key:secret
  * Bearer: HIGGSFIELD_USE_BEARER=true
- * Só um UUID no Cloud: tente HIGGSFIELD_AUTH_FORMAT=key_only → envia Key uuid: (secret vazio)
+ * Só HIGGSFIELD_API_KEY (sem secret): por padrão envia Key uuid: (secret vazio). Bearer: HIGGSFIELD_USE_BEARER=true
  *
  * Optional env overrides for model slugs if your Cloud gallery uses different IDs:
  *   HIGGSFIELD_MODEL_SOUL_CINEMA, HIGGSFIELD_MODEL_SOUL_2
@@ -55,25 +55,16 @@ function resolveAuth() {
     return { ok: true, header: `Key ${key.slice(0, i)}:${key.slice(i + 1)}` };
   }
 
-  if (process.env.HIGGSFIELD_USE_BEARER === '1' || process.env.HIGGSFIELD_USE_BEARER === 'true') {
+  if (
+    process.env.HIGGSFIELD_USE_BEARER === '1' ||
+    process.env.HIGGSFIELD_USE_BEARER === 'true' ||
+    (process.env.HIGGSFIELD_AUTH_FORMAT || '').toLowerCase().trim() === 'bearer'
+  ) {
     return { ok: true, header: `Bearer ${key}` };
   }
 
-  const authFmt = (process.env.HIGGSFIELD_AUTH_FORMAT || '').toLowerCase().trim();
-  if (authFmt === 'key_only' || authFmt === 'key_empty_secret' || authFmt === 'single') {
-    return { ok: true, header: `Key ${key}:` };
-  }
-
-  return {
-    ok: false,
-    status: 503,
-    body: {
-      error: 'Credenciais Higgsfield incompletas',
-      detail:
-        'Documentação: Key API_KEY:API_SECRET — https://docs.higgsfield.ai/how-to/introduction — No Cloud, confira se existe um segundo campo (secret) ou export completo. Se o painel só mostrar um UUID, no Vercel defina HIGGSFIELD_AUTH_FORMAT=key_only para tentar Key uuid: (secret vazio). Ou HIGGSFIELD_USE_BEARER=true. Ou HIGGSFIELD_CREDENTIALS=key:secret.',
-      docs: 'https://docs.higgsfield.ai/how-to/introduction'
-    }
-  };
+  // Só API key no Vercel (sem secret): envia Key uuid: — alinhado ao que muitos painéis mostram; 401 virá da API se faltar o par.
+  return { ok: true, header: `Key ${key}:` };
 }
 
 function mapUiModelToPath(uiModel) {
