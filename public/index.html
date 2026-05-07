@@ -405,7 +405,7 @@ Make each visually distinct — vary lighting, setting, angle, emotion.`});
 
   try{
     const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content}]})});
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content}]})});
     const data=await res.json();
     const raw=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
     prompts=JSON.parse(raw.replace(/```json|```/g,'').trim());
@@ -524,7 +524,7 @@ async function runGen(job,mdl,asp){
   const prod=document.getElementById('prod').value.trim();
   try{
     const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,
         mcp_servers:[{type:'url',url:'https://mcp.higgsfield.ai/mcp',name:'higgs'}],
         messages:[{role:'user',content:`Call Higgsfield generate_image with: ${JSON.stringify(params)}. Return ONLY the image URL.`}]})});
     const data=await res.json();
