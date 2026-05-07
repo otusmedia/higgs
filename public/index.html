@@ -519,15 +519,26 @@ async function runGen(job,mdl,asp){
   const{idx,prompt,label,style,mood,scene}=job;
   const sEl=document.getElementById('is'+idx), tEl=document.getElementById('it'+idx);
   if(sEl) sEl.textContent='Enviando…';
-  const params={model:mdl,prompt,aspect_ratio:asp,quality:'2k'};
-  if(mdl==='soul_2'&&selSoul) params.soul_id=selSoul;
   const prod=document.getElementById('prod').value.trim();
+  const soulLine=(mdl==='soul_2'&&selSoul)?`\n- Soul character id (if supported by the tool): ${selSoul}`:'';
+  const userMsg=`Use the Higgsfield MCP server tool generate_image (or the closest image generation tool exposed there) to create one image.
+
+Follow the tool schema exactly — do not invent field names. Typical inputs include a text prompt and optional size/quality parameters supported by that tool.
+
+Context:
+- Ad prompt (English, as already written): ${prompt}
+- Preset / model key from our UI: ${mdl}
+- Target aspect ratio: ${asp}
+- Prefer the highest quality the tool allows (e.g. 1080p) if such an option exists.${soulLine}
+- Product / brand context: ${prod||'(none)'}
+
+When finished, reply with ONLY one direct HTTPS URL to the image (jpg, png, or webp).`;
   try{
     const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,
-        mcp_servers:[{type:'url',url:'https://mcp.higgsfield.ai/mcp',name:'higgs'}],
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4096,
+        mcp_servers:[{type:'url',url:'https://mcp.higgsfield.ai',name:'higgs'}],
         tools:[{type:'mcp_toolset',mcp_server_name:'higgs'}],
-        messages:[{role:'user',content:`Call Higgsfield generate_image with: ${JSON.stringify(params)}. Return ONLY the image URL.`}]})});
+        messages:[{role:'user',content:userMsg}]})});
     const data=await res.json();
     if(!res.ok){
       const msg=(data&&data.error&&data.error.message)||(typeof data.error==='string'?data.error:null)||data.message||JSON.stringify(data).slice(0,120);
