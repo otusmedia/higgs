@@ -158,6 +158,21 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Fira Cod
 .lm{color:var(--mu)}
 .lm.ok{color:var(--ok)}.lm.gen{color:var(--acc)}.lm.er{color:var(--er)}
 
+.gblock-title{
+  grid-column:1/-1;
+  font-family:'Syne',sans-serif;
+  font-weight:800;
+  font-size:11px;
+  letter-spacing:1px;
+  color:var(--acc);
+  text-transform:uppercase;
+  padding:10px 0 6px;
+  margin-top:6px;
+  border-top:1px solid var(--b1);
+}
+.gblock-title.first{margin-top:0;padding-top:0;border-top:none}
+.total-hint .hint-val{font-size:13px;color:var(--lime);font-family:'Syne',sans-serif;font-weight:700;margin-top:4px}
+
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--mu);text-align:center;padding:40px}
 .empty .big{font-size:44px;opacity:.15}
 .empty p{font-size:11px;line-height:1.7;max-width:280px}
@@ -181,20 +196,20 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Fira Cod
 <div class="wrap">
   <div class="side">
     <div class="sec">
-      <div class="sec-ttl">Referência Visual</div>
+      <div class="sec-ttl">Referência visual — entrada principal</div>
       <div class="drop" id="dz">
         <input type="file" accept="image/*" onchange="loadImg(event)">
         <div id="dzC">
           <div style="font-size:22px">🖼</div>
-          <div class="drop-lbl"><b>Arraste ou clique</b><br>imagem de referência<br><span style="font-size:9px;opacity:.5">opcional</span></div>
+          <div class="drop-lbl"><b>Arraste ou clique</b><br>Esta imagem <b>guia</b> estilo, cor, luz e composição dos prompts e das gerações.</div>
         </div>
       </div>
     </div>
     <div class="sec grow">
       <div class="sec-ttl">Contexto</div>
       <div class="field">
-        <label>Produto / Serviço</label>
-        <input id="prod" type="text" placeholder="Ex: Tênis esportivo…">
+        <label>Produto / Serviço <span style="opacity:.55;font-size:8px">(opcional)</span></label>
+        <input id="prod" type="text" placeholder="Ex: Tênis esportivo… (pode ficar vazio)">
       </div>
       <div class="field">
         <label>Direção Criativa</label>
@@ -223,12 +238,25 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Fira Cod
         <div class="soul-row" id="souls"></div>
       </div>
       <div class="field">
-        <label>Variações</label>
-        <div class="cnt-row" id="cnts">
-          <div class="cnt on" data-v="2">2</div>
+        <label>Nº de prompts</label>
+        <div class="cnt-row" id="cntPrompts">
+          <div class="cnt" data-v="2">2</div>
+          <div class="cnt on" data-v="3">3</div>
           <div class="cnt" data-v="4">4</div>
-          <div class="cnt" data-v="6">6</div>
         </div>
+      </div>
+      <div class="field">
+        <label>Imagens por prompt</label>
+        <div class="cnt-row" id="cntPerPrompt">
+          <div class="cnt" data-v="1">1</div>
+          <div class="cnt on" data-v="2">2</div>
+          <div class="cnt" data-v="3">3</div>
+        </div>
+      </div>
+      <div class="field total-hint">
+        <label>Total selecionado</label>
+        <div class="hint-val" id="imgTotalHint">= 0 imagens</div>
+        <div style="font-size:9px;color:var(--mu);margin-top:4px;line-height:1.4">Prompts marcados × imagens por prompt. Ex.: 3 × 2 = 6 em paralelo.</div>
       </div>
     </div>
     <div class="btn-row">
@@ -247,7 +275,7 @@ html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Fira Cod
       <div class="parea" id="parea">
         <div class="empty" id="emptyP">
           <div class="big">✦</div>
-          <p>Preencha o produto e clique em <b>Gerar Prompts com IA</b>.<br>Envie uma imagem de referência para guiar o estilo.</p>
+          <p>Envie a <b>imagem de referência</b> (ideal) ou a <b>Direção Criativa</b>, depois <b>Gerar Prompts</b>.<br>Produto/serviço é opcional.</p>
         </div>
         <div id="pcards"></div>
       </div>
@@ -286,10 +314,13 @@ const SOULS=[
   {id:'b09f237e-4640-4938-ad95-984eba8ff5a2',name:'Timeless Enigma',init:'TE'},
 ];
 
-const API_URL='/api/proxy'; // calls our Vercel serverless function
+const API_URL='/api/proxy'; // Anthropic (prompts)
+const HF_IMAGE_URL='/api/higgsfield'; // Higgsfield REST (imagens)
+const HIGGSFIELD_QUALITY='1080p';
 
 let selSoul='46b76eff-eb68-4ce4-a3d0-a054b79c6550';
-let selCount=2, prompts=[], selIdxs=new Set();
+let numPrompts=3, imagesPerPrompt=2;
+let prompts=[], selIdxs=new Set();
 let saved=JSON.parse(localStorage.getItem('ads_saved')||'[]');
 let liked=JSON.parse(localStorage.getItem('ads_liked')||'[]');
 let refB64=null, refMime=null;
@@ -331,14 +362,19 @@ function updateInsight(){
 // ── INIT ──
 function init(){
   renderSouls(); renderSaved(); updateBadge(); updateInsight();
-  document.querySelectorAll('.cnt').forEach(b=>b.addEventListener('click',()=>{
-    document.querySelectorAll('.cnt').forEach(x=>x.classList.remove('on'));
-    b.classList.add('on'); selCount=parseInt(b.dataset.v);
+  document.querySelectorAll('#cntPrompts .cnt').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#cntPrompts .cnt').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); numPrompts=parseInt(b.dataset.v,10);
+  }));
+  document.querySelectorAll('#cntPerPrompt .cnt').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('#cntPerPrompt .cnt').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); imagesPerPrompt=parseInt(b.dataset.v,10); updateGenBtn();
   }));
   const dz=document.getElementById('dz');
   dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
   dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
   dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])processImg(e.dataTransfer.files[0])});
+  updateGenBtn();
 }
 
 function goTab(n,el){
@@ -364,7 +400,7 @@ function processImg(file){
 }
 function clearImg(e){
   e.stopPropagation(); refB64=null; refMime=null;
-  document.getElementById('dzC').innerHTML=`<div style="font-size:22px">🖼</div><div class="drop-lbl"><b>Arraste ou clique</b></div>`;
+  document.getElementById('dzC').innerHTML=`<div style="font-size:22px">🖼</div><div class="drop-lbl"><b>Arraste ou clique</b><br>Esta imagem <b>guia</b> estilo, cor, luz e composição dos prompts e das gerações.</div>`;
 }
 function log(msg,type=''){
   document.getElementById('lb').classList.add('open');
@@ -378,8 +414,11 @@ function log(msg,type=''){
 // ── GEN PROMPTS ──
 async function genPrompts(){
   const prod=document.getElementById('prod').value.trim();
-  if(!prod){alert('Preencha o produto/serviço!');return;}
   const dir=document.getElementById('dir').value.trim();
+  if(!refB64 && !dir){
+    alert('Envie uma imagem de referência (recomendado, é a base criativa) ou preencha a Direção Criativa.');
+    return;
+  }
   const btn=document.getElementById('genPBtn');
   btn.disabled=true; btn.textContent='⟳ Gerando…';
   document.querySelectorAll('.tview').forEach(t=>t.classList.remove('on'));
@@ -389,15 +428,20 @@ async function genPrompts(){
   document.getElementById('pcards').innerHTML='';
   log('Gerando prompts…','gen');
 
+  const refLead=refB64
+    ? `PRIMARY CREATIVE ANCHOR: The reference image is mandatory inspiration — match and evolve its lighting, color grade, composition, mood, and visual DNA. All prompts must feel like natural extensions of this reference.`
+    : `No reference image: rely on Direction below and strong ad craft.`;
+  const prodLine=prod?`Product / service (optional): "${prod}"`:'Product / service: not specified — infer from reference and/or direction.';
+
   const content=[];
   if(refB64) content.push({type:'image',source:{type:'base64',media_type:refMime,data:refB64}});
   content.push({type:'text',text:`You are an expert advertising creative director for Higgsfield Soul Cinema AI.
 
-Product: "${prod}"
-${dir?`Direction: "${dir}"`:''}
-${refB64?'Reference image attached — analyze: lighting, colors, composition, mood, depth. Use as visual foundation.':''}${tasteCtx()}
+${refLead}
+${prodLine}
+${dir?`Creative direction (tone, audience, emotion): "${dir}"`:''}${tasteCtx()}
 
-Generate exactly ${selCount} distinct ad image prompts. Return ONLY valid JSON array, nothing else:
+Generate exactly ${numPrompts} distinct ad image prompts. Return ONLY valid JSON array, nothing else:
 
 [{"style":"Cinematic|Editorial|Lifestyle|Dramatic|Minimal","mood":"one Portuguese word","scene":"one Portuguese word","prompt":"60-90 word English prompt with: subject, pose, environment, lighting, color palette, camera angle. End with: soul cinema style, photorealistic, ultra-sharp, award-winning advertisement."}]
 
@@ -433,11 +477,19 @@ function renderPrompts(){
         <button class="ibtn" title="Copiar" onclick="copyP(${i})">⎘</button>
       </div>
     </div>`).join('');
+  updateImgTotalHint();
 }
 function togSel(i){selIdxs.has(i)?selIdxs.delete(i):selIdxs.add(i);renderPrompts();updateGenBtn();}
+function updateImgTotalHint(){
+  const n=selIdxs.size*imagesPerPrompt;
+  const el=document.getElementById('imgTotalHint');
+  if(el) el.textContent=`= ${n} imagem${n!==1?'s':''}`;
+}
 function updateGenBtn(){
-  const n=selIdxs.size,b=document.getElementById('genIBtn');
-  b.disabled=n===0; b.textContent=n>0?`⬡ Gerar ${n} Imagem${n>1?'ns':''}`:'⬡ Gerar Imagens';
+  const n=selIdxs.size,total=n*imagesPerPrompt,b=document.getElementById('genIBtn');
+  b.disabled=n===0;
+  b.textContent=n>0?`⬡ Gerar ${total} imagem${total!==1?'s':''}`:'⬡ Gerar Imagens';
+  updateImgTotalHint();
 }
 function copyP(i){navigator.clipboard.writeText(document.getElementById('pt'+i)?.value||prompts[i]?.prompt).then(()=>log('Copiado!','ok'));}
 function saveProm(i,btn){
@@ -487,6 +539,29 @@ function renderSaved(){
 }
 function delSaved(i){saved.splice(i,1);persist();updateBadge();renderSaved();}
 
+function promptVariation(base,pIdx,varNum,totalVars){
+  if(totalVars<=1) return base.trim();
+  const hints=[
+    'Slight camera angle shift; keep subject and brand mood.',
+    'Alternate composition: more negative space, same palette.',
+    'Warmer key light, softer shadows, same scene.',
+    'Cooler tones, slightly wider lens feel.',
+    'Closer framing on hero subject, shallow depth of field.',
+    'Environmental wider shot, same styling.',
+    'Higher contrast, punchier highlights.',
+    'Gentler diffusion, softer highlight roll-off.',
+    'Low angle hero shot; same palette and talent energy.',
+    'Top-down flat-lay bias; graphic layout feel.'
+  ];
+  const h=hints[(pIdx*13+varNum*5)%hints.length];
+  return `${base.trim()} — Variation ${varNum}/${totalVars}: ${h}`;
+}
+
+function hfSeed(pIdx,varNum){
+  const n=100000+(pIdx+1)*7919+(varNum+1)*104729;
+  return 1+(Math.abs(n)%999000);
+}
+
 // ── GEN IMAGES ──
 async function genImages(){
   if(!selIdxs.size) return;
@@ -496,82 +571,97 @@ async function genImages(){
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===1));
   document.getElementById('emptyG').style.display='none';
   const grid=document.getElementById('igrid'); grid.style.display='grid'; grid.innerHTML='';
-  const jobs=[...selIdxs].map(i=>({idx:i,prompt:document.getElementById('pt'+i)?.value||prompts[i].prompt,
-    label:`Variação ${i+1}`,style:prompts[i]?.style,mood:prompts[i]?.mood,scene:prompts[i]?.scene}));
+  const sorted=[...selIdxs].sort((a,b)=>a-b);
+  const jobs=[];
+  sorted.forEach((pIdx,gi)=>{
+    const head=document.createElement('div');
+    head.className='gblock-title'+(gi===0?' first':'');
+    head.textContent=`Prompt ${pIdx+1}`;
+    grid.appendChild(head);
+    for(let v=1;v<=imagesPerPrompt;v++){
+      const cardKey=`${pIdx}_${v}`;
+      const base=document.getElementById('pt'+pIdx)?.value||prompts[pIdx].prompt;
+      const promptTxt=promptVariation(base,pIdx,v,imagesPerPrompt);
+      jobs.push({
+        cardKey,pIdx,varNum:v,prompt:promptTxt,
+        label:`Prompt ${pIdx+1} — Var ${v}`,
+        style:prompts[pIdx]?.style,mood:prompts[pIdx]?.mood,scene:prompts[pIdx]?.scene
+      });
+      const c=document.createElement('div'); c.className='icard'; c.id='ic'+cardKey;
+      c.innerHTML=`<div class="ithumb shim" id="it${cardKey}"><div class="spin"></div><div style="font-size:9px;text-align:center;padding:4px;line-height:1.3">Prompt ${pIdx+1}<br>Var ${v}</div></div>
+      <div class="imeta"><div class="ivar">Prompt ${pIdx+1} — Var ${v}</div><div class="iprm">${promptTxt.substring(0,80)}…</div></div>
+      <div class="ifoot"><div class="istatus"><div class="dot pend"></div><span id="is${cardKey}">Na fila</span></div><div class="imod">${mdl}</div></div>`;
+      grid.appendChild(c);
+    }
+  });
   dDone=0; dTotal=jobs.length;
   document.getElementById('sDone').textContent='0';
   document.getElementById('sTotal').textContent=jobs.length;
   document.getElementById('genIBtn').disabled=true;
-  jobs.forEach(j=>{
-    const c=document.createElement('div'); c.className='icard'; c.id='ic'+j.idx;
-    c.innerHTML=`<div class="ithumb shim" id="it${j.idx}"><div class="spin"></div><div style="font-size:9px">${j.label}</div></div>
-      <div class="imeta"><div class="ivar">${j.label}</div><div class="iprm">${j.prompt.substring(0,80)}…</div></div>
-      <div class="ifoot"><div class="istatus"><div class="dot pend"></div><span id="is${j.idx}">Na fila</span></div><div class="imod">${mdl}</div></div>`;
-    grid.appendChild(c);
-  });
-  log(`Disparando ${jobs.length} geração(ões)…`,'gen');
+  log(`Disparando ${jobs.length} geração(ões) em paralelo…`,'gen');
   await Promise.all(jobs.map(j=>runGen(j,mdl,asp)));
   log(`Concluído: ${dDone}/${dTotal}`,'ok');
   document.getElementById('genIBtn').disabled=false; updateGenBtn();
 }
 
+function extractHfImageUrl(data){
+  if(!data)return null;
+  const pick=o=>{
+    if(!o)return null;
+    if(o.images&&o.images[0]&&o.images[0].url)return o.images[0].url;
+    if(typeof o.url==='string'&&/^https?:\/\//i.test(o.url))return o.url;
+    if(o.output){
+      if(typeof o.output==='string'&&/^https?:\/\//i.test(o.output))return o.output;
+      if(o.output&&o.output.url)return o.output.url;
+    }
+    if(o.result){
+      if(typeof o.result==='string'&&/^https?:\/\//i.test(o.result))return o.result;
+      if(o.result&&o.result.url)return o.result.url;
+    }
+    return null;
+  };
+  return pick(data)||pick(data._submit)||null;
+}
+
 async function runGen(job,mdl,asp){
-  const{idx,prompt,label,style,mood,scene}=job;
-  const sEl=document.getElementById('is'+idx), tEl=document.getElementById('it'+idx);
+  const{cardKey,prompt,label,style,mood,scene}=job;
+  const sEl=document.getElementById('is'+cardKey), tEl=document.getElementById('it'+cardKey);
   if(sEl) sEl.textContent='Enviando…';
   const prod=document.getElementById('prod').value.trim();
-  const soulLine=(mdl==='soul_2'&&selSoul)?`\n- Soul character id (if supported by the tool): ${selSoul}`:'';
-  const userMsg=`Use the Higgsfield MCP server tool generate_image (or the closest image generation tool exposed there) to create one image.
-
-Follow the tool schema exactly — do not invent field names. Typical inputs include a text prompt and optional size/quality parameters supported by that tool.
-
-Context:
-- Ad prompt (English, as already written): ${prompt}
-- Preset / model key from our UI: ${mdl}
-- Target aspect ratio: ${asp}
-- Prefer the highest quality the tool allows (e.g. 1080p) if such an option exists.${soulLine}
-- Product / brand context: ${prod||'(none)'}
-
-When finished, reply with ONLY one direct HTTPS URL to the image (jpg, png, or webp).`;
+  const body={prompt,aspect_ratio:asp,quality:HIGGSFIELD_QUALITY,model:mdl,seed:hfSeed(job.pIdx,job.varNum)};
+  if(mdl==='soul_2'&&selSoul) body.soul_id=selSoul;
   try{
-    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4096,
-        mcp_servers:[{type:'url',url:'https://mcp.higgsfield.ai',name:'higgs'}],
-        tools:[{type:'mcp_toolset',mcp_server_name:'higgs'}],
-        messages:[{role:'user',content:userMsg}]})});
-    const data=await res.json();
+    const res=await fetch(HF_IMAGE_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json().catch(()=>({}));
     if(!res.ok){
-      const msg=(data&&data.error&&data.error.message)||(typeof data.error==='string'?data.error:null)||data.message||JSON.stringify(data).slice(0,120);
-      log(`[${label}] API ${res.status}: ${JSON.stringify(data).slice(0,200)}`,'er');
-      if(tEl) tEl.innerHTML=`<div style="padding:12px;color:var(--er);font-size:10px">${msg}</div>`;
+      const msg=(data&&data.error&&data.error.message)||(typeof data.error==='string'?data.error:null)||data.message||data.detail||JSON.stringify(data).slice(0,160);
+      log(`[${label}] Higgsfield ${res.status}: ${JSON.stringify(data).slice(0,400)}`,'er');
+      if(tEl){
+        tEl.innerHTML='<div style="padding:12px;color:var(--er);font-size:10px"></div>';
+        tEl.querySelector('div').textContent=String(msg);
+      }
       if(sEl) sEl.textContent='Erro';
-      const dot=document.querySelector(`#ic${idx} .dot`);
+      const dot=document.querySelector(`#ic${cardKey} .dot`);
       if(dot){dot.classList.remove('pend');dot.classList.add('err');}
       return;
     }
-    let url=null;
-    const trs=(data.content||[]).filter(c=>c.type==='mcp_tool_result');
-    for(const tr of trs){
-      const raw=tr.content?.[0]?.text||JSON.stringify(tr.content||'');
-      const m=raw.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:[^\s"'<>]*)?/i);
-      if(m){url=m[0];break;}
-      try{const f=o=>{if(typeof o==='string'&&/\.(jpg|jpeg|png|webp)/i.test(o))return o;if(Array.isArray(o)){for(const v of o){const r=f(v);if(r)return r;}}if(o&&typeof o==='object'){for(const v of Object.values(o)){const r=f(v);if(r)return r;}}return null;};url=f(JSON.parse(raw));if(url)break;}catch{}
-    }
-    if(!url){const tx=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join(' ');const m=tx.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:[^\s"'<>]*)?/i);if(m)url=m[0];}
+    const url=extractHfImageUrl(data);
     if(url){
       const likedThis=liked.some(l=>l.url===url);
-      if(tEl) tEl.innerHTML=`<img class="ireal" src="${url}" alt="${label}">
-        <button class="like-btn ${likedThis?'liked':''}" id="lb${idx}" onclick="toggleLike(${idx},'${url}',${JSON.stringify(prompt)},${JSON.stringify(style)},${JSON.stringify(mood)},${JSON.stringify(scene)},${JSON.stringify(prod)})">${likedThis?'♥':'♡'}</button>`;
+      if(tEl) tEl.innerHTML=`<img class="ireal" src="${url}" alt="">
+        <button class="like-btn ${likedThis?'liked':''}" id="lb${cardKey}" onclick="toggleLike('${cardKey}', ${JSON.stringify(url)}, ${JSON.stringify(prompt)}, ${JSON.stringify(style)}, ${JSON.stringify(mood)}, ${JSON.stringify(scene)}, ${JSON.stringify(prod)})">${likedThis?'♥':'♡'}</button>`;
       if(sEl) sEl.textContent='Pronta';
-      const dot=document.querySelector(`#ic${idx} .dot`);
+      const dot=document.querySelector(`#ic${cardKey} .dot`);
       if(dot){dot.classList.remove('pend');dot.classList.add('done');}
       dDone++; document.getElementById('sDone').textContent=dDone;
       log(`[${label}] ✓ Pronta`,'ok');
     } else {
-      if(tEl) tEl.innerHTML=`<div style="font-size:22px;opacity:.4">⏳</div><div style="font-size:9px;text-align:center;padding:8px">Processando…</div>`;
-      if(sEl) sEl.textContent='Processando';
+      log(`[${label}] resposta completa: ${JSON.stringify(data)}`,'er');
+      if(tEl) tEl.innerHTML=`<div style="padding:12px;color:var(--mu);font-size:10px;line-height:1.5">Sem URL na resposta. Resposta completa no log.</div>`;
+      if(sEl) sEl.textContent='Ver log';
       dDone++; document.getElementById('sDone').textContent=dDone;
-      log(`[${label}] Job enviado`,'ok');
+      const dot=document.querySelector(`#ic${cardKey} .dot`);
+      if(dot){dot.classList.remove('pend');dot.classList.add('err');}
     }
   }catch(err){
     if(tEl) tEl.innerHTML=`<div style="padding:12px;color:var(--er);font-size:10px">Erro: ${err.message}</div>`;
@@ -580,8 +670,8 @@ When finished, reply with ONLY one direct HTTPS URL to the image (jpg, png, or w
   }
 }
 
-function toggleLike(idx,url,prompt,style,mood,scene,product){
-  const btn=document.getElementById('lb'+idx);
+function toggleLike(cardKey,url,prompt,style,mood,scene,product){
+  const btn=document.getElementById('lb'+cardKey);
   const i=liked.findIndex(l=>l.url===url);
   if(i>=0){liked.splice(i,1);btn.classList.remove('liked');btn.textContent='♡';log('Like removido.');}
   else{liked.push({url,prompt,style,mood,scene,product,likedAt:new Date().toISOString()});btn.classList.add('liked');btn.textContent='♥';log(`♥ Curtida! Gosto: ${liked.length} likes`,'ok');}
