@@ -1,9 +1,3 @@
 {
-  "version": 2,
-  "functions": {
-    "api/proxy.js": {
-      "memory": 128,
-      "maxDuration": 30
-    }
-  }
+  "version": 2
 }
