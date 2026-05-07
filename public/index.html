@@ -526,8 +526,18 @@ async function runGen(job,mdl,asp){
     const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,
         mcp_servers:[{type:'url',url:'https://mcp.higgsfield.ai/mcp',name:'higgs'}],
+        tools:[{type:'mcp_toolset',mcp_server_name:'higgs'}],
         messages:[{role:'user',content:`Call Higgsfield generate_image with: ${JSON.stringify(params)}. Return ONLY the image URL.`}]})});
     const data=await res.json();
+    if(!res.ok){
+      const msg=(data&&data.error&&data.error.message)||(typeof data.error==='string'?data.error:null)||data.message||JSON.stringify(data).slice(0,120);
+      log(`[${label}] API ${res.status}: ${JSON.stringify(data).slice(0,200)}`,'er');
+      if(tEl) tEl.innerHTML=`<div style="padding:12px;color:var(--er);font-size:10px">${msg}</div>`;
+      if(sEl) sEl.textContent='Erro';
+      const dot=document.querySelector(`#ic${idx} .dot`);
+      if(dot){dot.classList.remove('pend');dot.classList.add('err');}
+      return;
+    }
     let url=null;
     const trs=(data.content||[]).filter(c=>c.type==='mcp_tool_result');
     for(const tr of trs){
