@@ -4,43 +4,35 @@
 ```
 adstudio/
 ├── api/
-│   └── proxy.js        ← backend (resolve CORS com a API Anthropic)
+│   ├── proxy.js         ← proxy Anthropic (prompts / Claude)
+│   └── higgsfield.js    ← proxy API REST Higgsfield (imagens)
 ├── public/
-│   └── index.html      ← frontend do app
+│   └── index.html
 ├── vercel.json
 └── package.json
 ```
 
-## Deploy em 3 passos
+Documentação oficial da API REST: [How to use API](https://docs.higgsfield.ai/how-to/introduction), [Generate Images](https://docs.higgsfield.ai/guides/images). Base: **`https://platform.higgsfield.ai`**. Credenciais: **[cloud.higgsfield.ai](https://cloud.higgsfield.ai/)**.
 
-### 1. Crie uma conta no Vercel
-Acesse https://vercel.com e crie conta gratuita (pode entrar com GitHub).
+## Deploy no Vercel
 
-### 2. Suba o projeto
-Opção A — pelo site:
-- Acesse https://vercel.com/new
-- Clique em "Browse" e selecione a pasta `adstudio`
-- Clique em Deploy
+1. Crie/importe o projeto no [Vercel](https://vercel.com).
+2. **Settings → Environment Variables** — adicione:
 
-Opção B — pelo terminal:
-```bash
-npm i -g vercel
-cd adstudio
-vercel
-```
+| Nome | Obrigatório | Descrição |
+|------|-------------|-----------|
+| `ANTHROPIC_API_KEY` | Sim (prompts) | Chave [Anthropic Console](https://console.anthropic.com) |
+| `HIGGSFIELD_API_KEY` | Sim (imagens) | API Key do Cloud Higgsfield |
+| `HIGGSFIELD_API_SECRET` | Recomendado | Secret (formato oficial `Authorization: Key key:secret`) |
+| `HIGGSFIELD_MODEL_SOUL_CINEMA` | Não | Override do `model_id` para Soul Cinema (se o padrão der 404) |
+| `HIGGSFIELD_MODEL_SOUL_2` | Não | Override para Soul 2.0 |
 
-### 3. Configure a variável de ambiente
-Após o deploy, no painel do Vercel:
-- Vá em Settings → Environment Variables
-- Adicione:
-  - Nome: `ANTHROPIC_API_KEY`
-  - Valor: sua chave da API Anthropic (https://console.anthropic.com)
-- Clique em Save
-- Vá em Deployments → clique nos 3 pontinhos → Redeploy
+Se **só** `HIGGSFIELD_API_KEY` estiver definida, o proxy envia `Authorization: Bearer <HIGGSFIELD_API_KEY>`. Com **key + secret**, usa o formato oficial `Key key:secret`.
 
-Pronto! O link gerado pelo Vercel é o seu app funcionando.
+3. Redeploy.
 
 ## Observações
-- O plano gratuito do Vercel é suficiente
-- A chave Anthropic é usada apenas no backend (nunca exposta no frontend)
-- Os créditos Higgsfield são consumidos via MCP quando você gera imagens
+
+- Geração de imagem é **assíncrona**; `api/higgsfield.js` faz **polling** do `status_url` até completar ou estourar o limite (ajuste `maxDuration` em `vercel.json` se necessário).
+- `resolution` no body segue a API (`720p`, `1080p`, `2K`, etc.); o frontend envia `quality` mapeado para `resolution`.
+- Créditos Higgsfield são os da sua conta Cloud.

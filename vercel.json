@@ -4,6 +4,10 @@
     "api/proxy.js": {
       "memory": 128,
       "maxDuration": 30
+    },
+    "api/higgsfield.js": {
+      "memory": 128,
+      "maxDuration": 60
     }
   }
 }
