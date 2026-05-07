@@ -3,8 +3,8 @@
  * Base URL: https://platform.higgsfield.ai (credentials from https://cloud.higgsfield.ai/)
  *
  * Auth (official): Authorization: Key {api_key}:{api_key_secret}
- *   → set HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET
- * If only HIGGSFIELD_API_KEY is set: Authorization: Bearer <key> (some accounts use a single token)
+ *   → HIGGSFIELD_API_KEY + HIGGSFIELD_API_SECRET, OR one line HIGGSFIELD_CREDENTIALS=key:secret
+ * Bearer só se HIGGSFIELD_USE_BEARER=true (a plataforma costuma rejeitar Bearer → 401)
  *
  * Optional env overrides for model slugs if your Cloud gallery uses different IDs:
  *   HIGGSFIELD_MODEL_SOUL_CINEMA, HIGGSFIELD_MODEL_SOUL_2
@@ -31,12 +31,43 @@ function readRawBody(req) {
   });
 }
 
-function buildAuthHeader() {
-  const key = process.env.HIGGSFIELD_API_KEY;
-  const secret = process.env.HIGGSFIELD_API_SECRET;
-  if (!key) return null;
-  if (secret) return `Key ${key}:${secret}`;
-  return `Bearer ${key}`;
+function resolveAuth() {
+  const creds = (process.env.HIGGSFIELD_CREDENTIALS || '').trim();
+  if (creds && creds.includes(':')) {
+    const i = creds.indexOf(':');
+    return { ok: true, header: `Key ${creds.slice(0, i)}:${creds.slice(i + 1)}` };
+  }
+
+  let key = (process.env.HIGGSFIELD_API_KEY || '').trim();
+  const secret = (process.env.HIGGSFIELD_API_SECRET || '').trim();
+
+  if (!key) {
+    return { ok: false, status: 500, body: { error: 'HIGGSFIELD_API_KEY não configurada' } };
+  }
+
+  if (secret) {
+    return { ok: true, header: `Key ${key}:${secret}` };
+  }
+
+  if (key.includes(':')) {
+    const i = key.indexOf(':');
+    return { ok: true, header: `Key ${key.slice(0, i)}:${key.slice(i + 1)}` };
+  }
+
+  if (process.env.HIGGSFIELD_USE_BEARER === '1' || process.env.HIGGSFIELD_USE_BEARER === 'true') {
+    return { ok: true, header: `Bearer ${key}` };
+  }
+
+  return {
+    ok: false,
+    status: 503,
+    body: {
+      error: 'Credenciais Higgsfield incompletas',
+      detail:
+        'A API exige Authorization: Key API_KEY:API_SECRET (ver docs.higgsfield.ai). No Vercel adicione HIGGSFIELD_API_SECRET copiado do Cloud, ou use HIGGSFIELD_CREDENTIALS=key:secret numa linha. Só a key UUID sem secret costuma gerar 401.',
+      docs: 'https://docs.higgsfield.ai/guides/images'
+    }
+  };
 }
 
 function mapUiModelToPath(uiModel) {
@@ -63,10 +94,11 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const auth = buildAuthHeader();
-  if (!auth) {
-    return res.status(500).json({ error: 'HIGGSFIELD_API_KEY não configurada' });
+  const authRes = resolveAuth();
+  if (!authRes.ok) {
+    return res.status(authRes.status).json(authRes.body);
   }
+  const auth = authRes.header;
 
   let payload;
   try {

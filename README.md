@@ -23,11 +23,12 @@ Documentação oficial da API REST: [How to use API](https://docs.higgsfield.ai/
 |------|-------------|-----------|
 | `ANTHROPIC_API_KEY` | Sim (prompts) | Chave [Anthropic Console](https://console.anthropic.com) |
 | `HIGGSFIELD_API_KEY` | Sim (imagens) | API Key do Cloud Higgsfield |
-| `HIGGSFIELD_API_SECRET` | Recomendado | Secret (formato oficial `Authorization: Key key:secret`) |
+| `HIGGSFIELD_API_SECRET` | **Sim** (na prática) | Secret do mesmo painel — a API usa `Key key:secret`; só a key → **401** |
+| `HIGGSFIELD_CREDENTIALS` | Alternativa | Uma linha `key:secret` (substitui key+secret separados) |
 | `HIGGSFIELD_MODEL_SOUL_CINEMA` | Não | Override do `model_id` para Soul Cinema (se o padrão der 404) |
 | `HIGGSFIELD_MODEL_SOUL_2` | Não | Override para Soul 2.0 |
 
-Se **só** `HIGGSFIELD_API_KEY` estiver definida, o proxy envia `Authorization: Bearer <HIGGSFIELD_API_KEY>`. Com **key + secret**, usa o formato oficial `Key key:secret`.
+O formato oficial é **`Authorization: Key key:secret`**. Sem o secret, o deploy responde **503** com instrução (evita 401 opaco). Para forçar Bearer legado: `HIGGSFIELD_USE_BEARER=true`.
 
 3. Redeploy.
 
