@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ad Studio</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Fira+Code:wght@300;400;500&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07070a;--s1:#0f0f14;--s2:#17171e;--s3:#1f1f28;
+  --b1:#252530;--b2:#30303e;
+  --acc:#a78bfa;--acc2:#f472b6;--lime:#bef264;
+  --tx:#eeeef5;--mu:#5a5a72;--mu2:#3a3a50;
+  --ok:#4ade80;--er:#f87171;
+}
+html,body{height:100%;background:var(--bg);color:var(--tx);font-family:'Fira Code',monospace;overflow:hidden}
+
+.top{height:48px;border-bottom:1px solid var(--b1);display:flex;align-items:center;padding:0 16px;gap:12px;background:var(--s1);flex-shrink:0}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;letter-spacing:-.5px}
+.logo span{color:var(--acc)}
+.sep{width:1px;height:18px;background:var(--b1)}
+.tabs{display:flex;gap:2px}
+.tab{padding:4px 12px;border-radius:16px;font-size:11px;cursor:pointer;color:var(--mu);transition:.2s;border:1px solid transparent;font-family:'Fira Code',monospace}
+.tab:hover{color:var(--tx)}
+.tab.on{background:var(--s3);border-color:var(--b2);color:var(--tx)}
+.badge{margin-left:auto;font-size:10px;color:var(--mu);display:flex;align-items:center;gap:6px}
+.badge .pill{background:var(--acc);color:#fff;border-radius:8px;padding:1px 6px;font-size:9px}
+
+.wrap{display:flex;height:calc(100vh - 48px)}
+
+/* SIDEBAR */
+.side{width:300px;border-right:1px solid var(--b1);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0}
+.sec{padding:14px 16px;border-bottom:1px solid var(--b1);overflow-y:auto}
+.sec.grow{flex:1}
+.sec-ttl{font-size:8px;text-transform:uppercase;letter-spacing:2px;color:var(--mu);margin-bottom:10px}
+
+.drop{border:1px dashed var(--b2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:.2s;background:var(--s2);position:relative;overflow:hidden;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+.drop:hover,.drop.over{border-color:var(--acc);background:rgba(167,139,250,.06)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-lbl{font-size:11px;color:var(--mu);line-height:1.5}
+.drop-lbl b{color:var(--tx)}
+.prev-img{width:100%;border-radius:6px;max-height:110px;object-fit:cover;display:block}
+.clr-btn{position:absolute;top:6px;right:6px;width:20px;height:20px;background:rgba(0,0,0,.8);border:none;border-radius:50%;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:10px}
+.field:last-child{margin-bottom:0}
+.field label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--mu)}
+.field input,.field textarea,.field select{background:var(--s2);border:1px solid var(--b1);color:var(--tx);font-family:'Fira Code',monospace;font-size:12px;padding:8px 10px;border-radius:6px;outline:none;transition:.2s;resize:none;width:100%}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--acc)}
+.field select option{background:#1f1f28}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+.soul-row{display:flex;flex-direction:column;gap:6px}
+.soul-chip{display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--b1);border-radius:8px;cursor:pointer;transition:.2s;font-size:11px;color:var(--mu)}
+.soul-chip:hover{border-color:var(--b2);color:var(--tx)}
+.soul-chip.on{border-color:var(--acc);background:rgba(167,139,250,.1);color:var(--tx)}
+.soul-av{width:26px;height:26px;border-radius:50%;background:var(--s3);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--acc);font-family:'Syne',sans-serif;flex-shrink:0}
+
+.cnt-row{display:flex;gap:6px}
+.cnt{flex:1;padding:6px;border:1px solid var(--b1);background:var(--s2);color:var(--mu);font-family:'Fira Code',monospace;font-size:12px;border-radius:6px;cursor:pointer;transition:.2s;text-align:center}
+.cnt:hover{border-color:var(--b2);color:var(--tx)}
+.cnt.on{border-color:var(--acc);color:var(--acc);background:rgba(167,139,250,.08)}
+
+.btn-row{padding:12px 16px;border-top:1px solid var(--b1);display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.btn{display:flex;align-items:center;justify-content:center;gap:7px;padding:9px 14px;border-radius:7px;border:none;font-family:'Fira Code',monospace;font-size:12px;cursor:pointer;transition:.2s;width:100%}
+.btn-acc{background:var(--acc);color:#fff}
+.btn-acc:hover{background:#b8a4ff;transform:translateY(-1px)}
+.btn-lime{background:var(--lime);color:#000}
+.btn-lime:hover{background:#cdff7a;transform:translateY(-1px)}
+.btn:disabled{opacity:.35;cursor:not-allowed;transform:none!important}
+
+/* CONTENT */
+.content{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.tview{display:none;flex:1;overflow:hidden;flex-direction:column}
+.tview.on{display:flex}
+
+/* INSIGHT */
+.insight{padding:8px 16px;background:rgba(167,139,250,.07);border-bottom:1px solid rgba(167,139,250,.15);font-size:10px;color:var(--acc);display:flex;align-items:center;gap:8px}
+
+/* PROMPTS */
+.parea{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px}
+.pcard{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:14px;display:flex;gap:12px;transition:.2s;animation:slin .3s ease forwards;opacity:0}
+.pcard:nth-child(1){animation-delay:.00s}.pcard:nth-child(2){animation-delay:.05s}
+.pcard:nth-child(3){animation-delay:.10s}.pcard:nth-child(4){animation-delay:.15s}
+.pcard:nth-child(5){animation-delay:.20s}.pcard:nth-child(6){animation-delay:.25s}
+@keyframes slin{from{opacity:0;transform:translateX(-6px)}to{opacity:1;transform:none}}
+.pcard:hover{border-color:var(--b2)}
+.pcard.sel{border-color:var(--acc);background:rgba(167,139,250,.05)}
+.pnum{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:var(--mu2);line-height:1;width:26px;flex-shrink:0}
+.pcard.sel .pnum{color:var(--acc)}
+.pbody{flex:1}
+.ptags{display:flex;gap:5px;margin-bottom:7px;flex-wrap:wrap}
+.ptag{font-size:9px;padding:2px 7px;border-radius:8px;border:1px solid var(--b2);color:var(--mu)}
+.ptag.s{border-color:rgba(167,139,250,.4);color:var(--acc)}
+.ptag.m{border-color:rgba(244,114,182,.4);color:var(--acc2)}
+.ptag.sc{border-color:rgba(190,242,100,.3);color:var(--lime)}
+.ptxt{width:100%;background:transparent;border:none;color:var(--tx);font-family:'Fira Code',monospace;font-size:11px;line-height:1.7;resize:none;outline:none;min-height:55px}
+.pacts{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.ibtn{width:28px;height:28px;border:1px solid var(--b1);background:var(--s2);border-radius:6px;color:var(--mu);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:.2s}
+.ibtn:hover{border-color:var(--b2);color:var(--tx)}
+.ibtn.sel-act.on,.ibtn.sel-act:hover{border-color:var(--acc);color:var(--acc);background:rgba(167,139,250,.15)}
+.ibtn.sav-act:hover{border-color:var(--ok);color:var(--ok)}
+
+/* GENERATION */
+.garea{flex:1;overflow-y:auto;padding:18px}
+.ghead{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.gtitle{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:1px}
+.stats{display:flex;gap:14px}
+.stat{text-align:right}
+.stat-n{font-family:'Syne',sans-serif;font-weight:800;font-size:26px;line-height:1;color:var(--lime)}
+.stat-l{font-size:8px;color:var(--mu);text-transform:uppercase;letter-spacing:1px}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.icard{background:var(--s1);border:1px solid var(--b1);border-radius:10px;overflow:hidden;animation:fup .35s ease forwards;opacity:0;position:relative}
+.icard:nth-child(1){animation-delay:.00s}.icard:nth-child(2){animation-delay:.07s}
+.icard:nth-child(3){animation-delay:.14s}.icard:nth-child(4){animation-delay:.21s}
+.icard:nth-child(5){animation-delay:.28s}.icard:nth-child(6){animation-delay:.35s}
+@keyframes fup{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.ithumb{aspect-ratio:9/16;background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--mu);font-size:10px;position:relative;overflow:hidden}
+.ithumb.shim::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.03),transparent);animation:shim 1.4s infinite}
+@keyframes shim{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.spin{width:22px;height:22px;border:2px solid var(--b2);border-top-color:var(--acc);border-radius:50%;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ireal{width:100%;aspect-ratio:9/16;object-fit:cover;display:block}
+.imeta{padding:8px 10px}
+.ivar{font-size:8px;color:var(--acc);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.iprm{font-size:10px;color:var(--mu);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ifoot{padding:7px 10px;border-top:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between}
+.istatus{font-size:9px;display:flex;align-items:center;gap:4px}
+.dot{width:5px;height:5px;border-radius:50%}
+.dot.pend{background:var(--mu);animation:bl 1.5s infinite}
+.dot.done{background:var(--ok)}
+.dot.err{background:var(--er)}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+.imod{font-size:8px;color:var(--mu)}
+.like-btn{position:absolute;top:8px;right:8px;width:30px;height:30px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.1);border-radius:50%;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:.2s;backdrop-filter:blur(4px)}
+.like-btn:hover{background:rgba(244,114,182,.3);border-color:var(--acc2)}
+.like-btn.liked{background:rgba(244,114,182,.4)!important;border-color:var(--acc2)!important;color:var(--acc2)!important}
+
+/* SAVED */
+.sarea{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:10px}
+.scard{background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:14px;display:flex;gap:12px;animation:slin .3s ease forwards;opacity:0}
+.scard:nth-child(n){animation-delay:calc(var(--i,0)*.05s)}
+.smeta{font-size:8px;color:var(--mu);margin-bottom:5px;display:flex;gap:10px}
+.stxt{font-size:11px;color:var(--tx);line-height:1.7}
+.stags{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap}
+.lbadge{font-size:8px;color:var(--acc2);margin-top:5px}
+.sacts{display:flex;flex-direction:column;gap:5px}
+.sec-head{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--acc2);margin:12px 0 8px;display:flex;align-items:center;gap:8px}
+.sec-head::after{content:'';flex:1;height:1px;background:var(--b1)}
+
+/* LOG */
+.logbar{border-top:1px solid var(--b1);background:var(--s1);max-height:0;overflow:hidden;transition:max-height .3s;flex-shrink:0}
+.logbar.open{max-height:84px}
+.loginner{padding:6px 16px;overflow-y:auto;max-height:78px}
+.lline{font-size:9px;display:flex;gap:8px;margin-bottom:2px}
+.lt{color:var(--mu2)}
+.lm{color:var(--mu)}
+.lm.ok{color:var(--ok)}.lm.gen{color:var(--acc)}.lm.er{color:var(--er)}
+
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--mu);text-align:center;padding:40px}
+.empty .big{font-size:44px;opacity:.15}
+.empty p{font-size:11px;line-height:1.7;max-width:280px}
+
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="top">
+  <div class="logo">AD<span>STUDIO</span></div>
+  <div class="sep"></div>
+  <div class="tabs">
+    <div class="tab on" onclick="goTab('prompts',this)">✦ Prompts</div>
+    <div class="tab" onclick="goTab('generation',this)">⬡ Geração</div>
+    <div class="tab" onclick="goTab('saved',this)">◈ Salvos</div>
+  </div>
+  <div class="badge">salvos <div class="pill" id="savedBadge">0</div></div>
+</div>
+
+<div class="wrap">
+  <div class="side">
+    <div class="sec">
+      <div class="sec-ttl">Referência Visual</div>
+      <div class="drop" id="dz">
+        <input type="file" accept="image/*" onchange="loadImg(event)">
+        <div id="dzC">
+          <div style="font-size:22px">🖼</div>
+          <div class="drop-lbl"><b>Arraste ou clique</b><br>imagem de referência<br><span style="font-size:9px;opacity:.5">opcional</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="sec grow">
+      <div class="sec-ttl">Contexto</div>
+      <div class="field">
+        <label>Produto / Serviço</label>
+        <input id="prod" type="text" placeholder="Ex: Tênis esportivo…">
+      </div>
+      <div class="field">
+        <label>Direção Criativa</label>
+        <textarea id="dir" rows="2" placeholder="Tom, público, emoção…"></textarea>
+      </div>
+      <div class="sec-ttl" style="margin-top:12px">Geração</div>
+      <div class="r2">
+        <div class="field">
+          <label>Modelo</label>
+          <select id="mdl">
+            <option value="soul_cinematic">Soul Cinema</option>
+            <option value="soul_2">Soul 2.0</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Formato</label>
+          <select id="asp">
+            <option value="9:16">9:16 Story</option>
+            <option value="1:1">1:1 Feed</option>
+            <option value="16:9">16:9 Wide</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Soul Character</label>
+        <div class="soul-row" id="souls"></div>
+      </div>
+      <div class="field">
+        <label>Variações</label>
+        <div class="cnt-row" id="cnts">
+          <div class="cnt on" data-v="2">2</div>
+          <div class="cnt" data-v="4">4</div>
+          <div class="cnt" data-v="6">6</div>
+        </div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-acc" id="genPBtn" onclick="genPrompts()">✦ Gerar Prompts com IA</button>
+      <button class="btn btn-lime" id="genIBtn" onclick="genImages()" disabled>⬡ Gerar Imagens</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="insight" id="insightBar" style="display:none">
+      🧠 <span id="insightTxt"></span>
+    </div>
+
+    <!-- PROMPTS -->
+    <div class="tview on" id="tv-prompts">
+      <div class="parea" id="parea">
+        <div class="empty" id="emptyP">
+          <div class="big">✦</div>
+          <p>Preencha o produto e clique em <b>Gerar Prompts com IA</b>.<br>Envie uma imagem de referência para guiar o estilo.</p>
+        </div>
+        <div id="pcards"></div>
+      </div>
+    </div>
+
+    <!-- GENERATION -->
+    <div class="tview" id="tv-generation">
+      <div class="garea">
+        <div class="ghead">
+          <div class="gtitle">Variações Geradas</div>
+          <div class="stats">
+            <div class="stat"><div class="stat-n" id="sDone">0</div><div class="stat-l">Prontas</div></div>
+            <div class="stat"><div class="stat-n" id="sTotal">—</div><div class="stat-l">Total</div></div>
+          </div>
+        </div>
+        <div class="empty" id="emptyG"><div class="big">⬡</div><p>Selecione prompts e clique em <b>Gerar Imagens</b>.</p></div>
+        <div class="igrid" id="igrid" style="display:none"></div>
+      </div>
+    </div>
+
+    <!-- SAVED -->
+    <div class="tview" id="tv-saved">
+      <div class="sarea" id="sarea">
+        <div class="empty" id="emptyS"><div class="big">◈</div><p>Salve prompts com <b>♡</b> e curta imagens geradas para treinar seu gosto.</p></div>
+      </div>
+    </div>
+
+    <div class="logbar" id="lb"><div class="loginner" id="li"></div></div>
+  </div>
+</div>
+
+<script>
+const SOULS=[
+  {id:'46b76eff-eb68-4ce4-a3d0-a054b79c6550',name:'foletto',init:'FO'},
+  {id:'208b4fa9-8019-46d9-9c56-c15ee29339cb',name:'Carlos Faria',init:'CF'},
+  {id:'b09f237e-4640-4938-ad95-984eba8ff5a2',name:'Timeless Enigma',init:'TE'},
+];
+
+const API_URL='/api/proxy'; // calls our Vercel serverless function
+
+let selSoul='46b76eff-eb68-4ce4-a3d0-a054b79c6550';
+let selCount=2, prompts=[], selIdxs=new Set();
+let saved=JSON.parse(localStorage.getItem('ads_saved')||'[]');
+let liked=JSON.parse(localStorage.getItem('ads_liked')||'[]');
+let refB64=null, refMime=null;
+let dDone=0, dTotal=0;
+
+function persist(){
+  localStorage.setItem('ads_saved',JSON.stringify(saved));
+  localStorage.setItem('ads_liked',JSON.stringify(liked));
+}
+
+// ── TASTE ──
+function tasteProfile(){
+  if(!liked.length) return null;
+  const st={},mo={},sc={};
+  liked.forEach(l=>{
+    if(l.style) st[l.style]=(st[l.style]||0)+1;
+    if(l.mood)  mo[l.mood]=(mo[l.mood]||0)+1;
+    if(l.scene) sc[l.scene]=(sc[l.scene]||0)+1;
+  });
+  const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).map(e=>e[0]);
+  return{styles:top(st),moods:top(mo),scenes:top(sc),total:liked.length};
+}
+function tasteCtx(){
+  const t=tasteProfile(); if(!t||t.total<2) return '';
+  return `\n\nUSER TASTE (${t.total} likes): styles: ${t.styles.slice(0,2).join(', ')}; moods: ${t.moods.slice(0,2).join(', ')}; scenes: ${t.scenes.slice(0,2).join(', ')}. STRONGLY bias prompts toward these.`;
+}
+function updateInsight(){
+  const t=tasteProfile(); const bar=document.getElementById('insightBar');
+  if(!t||!t.total){bar.style.display='none';return;}
+  bar.style.display='flex';
+  const parts=[];
+  if(t.styles[0]) parts.push(`estilo <b>${t.styles[0]}</b>`);
+  if(t.moods[0])  parts.push(`mood <b>${t.moods[0]}</b>`);
+  if(t.scenes[0]) parts.push(`cena <b>${t.scenes[0]}</b>`);
+  document.getElementById('insightTxt').innerHTML=
+    `Seu gosto: prefere ${parts.join(', ')} — novos prompts já usam isso. (${t.total} ♥)`;
+}
+
+// ── INIT ──
+function init(){
+  renderSouls(); renderSaved(); updateBadge(); updateInsight();
+  document.querySelectorAll('.cnt').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.cnt').forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); selCount=parseInt(b.dataset.v);
+  }));
+  const dz=document.getElementById('dz');
+  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over')});
+  dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');if(e.dataTransfer.files[0])processImg(e.dataTransfer.files[0])});
+}
+
+function goTab(n,el){
+  document.querySelectorAll('.tview').forEach(t=>t.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tv-'+n).classList.add('on'); el.classList.add('on');
+}
+function renderSouls(){
+  document.getElementById('souls').innerHTML=SOULS.map(s=>`
+    <div class="soul-chip ${s.id===selSoul?'on':''}" onclick="pickSoul('${s.id}')">
+      <div class="soul-av">${s.init}</div>${s.name}
+    </div>`).join('');
+}
+function pickSoul(id){selSoul=id;renderSouls();}
+function loadImg(e){if(e.target.files[0])processImg(e.target.files[0]);}
+function processImg(file){
+  const r=new FileReader();
+  r.onload=ev=>{
+    const d=ev.target.result; refB64=d.split(',')[1]; refMime=file.type;
+    document.getElementById('dzC').innerHTML=`<img class="prev-img" src="${d}"><button class="clr-btn" onclick="clearImg(event)">✕</button>`;
+    log('Imagem carregada.','ok');
+  }; r.readAsDataURL(file);
+}
+function clearImg(e){
+  e.stopPropagation(); refB64=null; refMime=null;
+  document.getElementById('dzC').innerHTML=`<div style="font-size:22px">🖼</div><div class="drop-lbl"><b>Arraste ou clique</b></div>`;
+}
+function log(msg,type=''){
+  document.getElementById('lb').classList.add('open');
+  const t=new Date().toLocaleTimeString('pt-BR');
+  const d=document.createElement('div'); d.className='lline';
+  d.innerHTML=`<span class="lt">${t}</span><span class="lm ${type}">${msg}</span>`;
+  document.getElementById('li').appendChild(d);
+  document.getElementById('li').scrollTop=9999;
+}
+
+// ── GEN PROMPTS ──
+async function genPrompts(){
+  const prod=document.getElementById('prod').value.trim();
+  if(!prod){alert('Preencha o produto/serviço!');return;}
+  const dir=document.getElementById('dir').value.trim();
+  const btn=document.getElementById('genPBtn');
+  btn.disabled=true; btn.textContent='⟳ Gerando…';
+  document.querySelectorAll('.tview').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tv-prompts').classList.add('on');
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===0));
+  document.getElementById('emptyP').style.display='none';
+  document.getElementById('pcards').innerHTML='';
+  log('Gerando prompts…','gen');
+
+  const content=[];
+  if(refB64) content.push({type:'image',source:{type:'base64',media_type:refMime,data:refB64}});
+  content.push({type:'text',text:`You are an expert advertising creative director for Higgsfield Soul Cinema AI.
+
+Product: "${prod}"
+${dir?`Direction: "${dir}"`:''}
+${refB64?'Reference image attached — analyze: lighting, colors, composition, mood, depth. Use as visual foundation.':''}${tasteCtx()}
+
+Generate exactly ${selCount} distinct ad image prompts. Return ONLY valid JSON array, nothing else:
+
+[{"style":"Cinematic|Editorial|Lifestyle|Dramatic|Minimal","mood":"one Portuguese word","scene":"one Portuguese word","prompt":"60-90 word English prompt with: subject, pose, environment, lighting, color palette, camera angle. End with: soul cinema style, photorealistic, ultra-sharp, award-winning advertisement."}]
+
+Make each visually distinct — vary lighting, setting, angle, emotion.`});
+
+  try{
+    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content}]})});
+    const data=await res.json();
+    const raw=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join('');
+    prompts=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    selIdxs.clear(); renderPrompts(); updateGenBtn();
+    log(`${prompts.length} prompts gerados!`,'ok');
+  }catch(err){log('Erro: '+err.message,'er'); document.getElementById('emptyP').style.display='flex';}
+  btn.disabled=false; btn.innerHTML='✦ Gerar Prompts com IA';
+}
+
+function renderPrompts(){
+  document.getElementById('pcards').innerHTML=prompts.map((p,i)=>`
+    <div class="pcard ${selIdxs.has(i)?'sel':''}" id="pc${i}">
+      <div class="pnum">${String(i+1).padStart(2,'0')}</div>
+      <div class="pbody">
+        <div class="ptags">
+          <span class="ptag s">${p.style||''}</span>
+          <span class="ptag m">${p.mood||''}</span>
+          <span class="ptag sc">${p.scene||''}</span>
+        </div>
+        <textarea class="ptxt" id="pt${i}" rows="3">${p.prompt}</textarea>
+      </div>
+      <div class="pacts">
+        <button class="ibtn sel-act ${selIdxs.has(i)?'on':''}" title="Selecionar" onclick="togSel(${i})">◎</button>
+        <button class="ibtn sav-act" title="Salvar" onclick="saveProm(${i},this)">♡</button>
+        <button class="ibtn" title="Copiar" onclick="copyP(${i})">⎘</button>
+      </div>
+    </div>`).join('');
+}
+function togSel(i){selIdxs.has(i)?selIdxs.delete(i):selIdxs.add(i);renderPrompts();updateGenBtn();}
+function updateGenBtn(){
+  const n=selIdxs.size,b=document.getElementById('genIBtn');
+  b.disabled=n===0; b.textContent=n>0?`⬡ Gerar ${n} Imagem${n>1?'ns':''}`:'⬡ Gerar Imagens';
+}
+function copyP(i){navigator.clipboard.writeText(document.getElementById('pt'+i)?.value||prompts[i]?.prompt).then(()=>log('Copiado!','ok'));}
+function saveProm(i,btn){
+  const p=prompts[i],txt=document.getElementById('pt'+i)?.value||p.prompt;
+  saved.unshift({id:Date.now(),product:document.getElementById('prod').value.trim(),style:p.style,mood:p.mood,scene:p.scene,prompt:txt,savedAt:new Date().toISOString()});
+  persist(); updateBadge(); renderSaved(); log('Conceito salvo!','ok');
+  btn.textContent='♥'; btn.style.color='var(--acc2)';
+  setTimeout(()=>{btn.textContent='♡';btn.style.color='';},1200);
+}
+function updateBadge(){document.getElementById('savedBadge').textContent=saved.length+liked.length;}
+
+function renderSaved(){
+  const a=document.getElementById('sarea');
+  document.getElementById('emptyS').style.display=(!saved.length&&!liked.length)?'flex':'none';
+  a.querySelectorAll('.scard,.sec-head').forEach(e=>e.remove());
+  saved.forEach((c,i)=>{
+    const d=new Date(c.savedAt).toLocaleDateString('pt-BR');
+    const el=document.createElement('div'); el.className='scard';
+    el.innerHTML=`
+      <div style="flex:1">
+        <div class="smeta"><span>📦 ${c.product||'—'}</span><span>📅 ${d}</span></div>
+        <div class="stxt">${c.prompt}</div>
+        <div class="stags">
+          ${c.style?`<span class="ptag s">${c.style}</span>`:''}
+          ${c.mood?`<span class="ptag m">${c.mood}</span>`:''}
+          ${c.scene?`<span class="ptag sc">${c.scene}</span>`:''}
+        </div>
+      </div>
+      <div class="sacts">
+        <button class="ibtn" onclick="navigator.clipboard.writeText(${JSON.stringify(c.prompt)}).then(()=>log('Copiado!','ok'))">⎘</button>
+        <button class="ibtn" onclick="delSaved(${i})" style="color:var(--mu)">✕</button>
+      </div>`; a.appendChild(el);
+  });
+  if(liked.length){
+    const h=document.createElement('div'); h.className='sec-head'; h.innerHTML='♥ Curtidas'; a.appendChild(h);
+    liked.forEach(l=>{
+      const el=document.createElement('div'); el.className='scard';
+      el.innerHTML=`
+        <img src="${l.url}" style="width:55px;height:74px;object-fit:cover;border-radius:6px;flex-shrink:0">
+        <div style="flex:1">
+          <div class="smeta"><span>📦 ${l.product||'—'}</span></div>
+          <div class="stxt" style="font-size:10px">${l.prompt.substring(0,100)}…</div>
+          <div class="lbadge">♥ ${l.style||''} · ${l.mood||''}</div>
+        </div>`; a.appendChild(el);
+    });
+  }
+}
+function delSaved(i){saved.splice(i,1);persist();updateBadge();renderSaved();}
+
+// ── GEN IMAGES ──
+async function genImages(){
+  if(!selIdxs.size) return;
+  const mdl=document.getElementById('mdl').value, asp=document.getElementById('asp').value;
+  document.querySelectorAll('.tview').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tv-generation').classList.add('on');
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('on',i===1));
+  document.getElementById('emptyG').style.display='none';
+  const grid=document.getElementById('igrid'); grid.style.display='grid'; grid.innerHTML='';
+  const jobs=[...selIdxs].map(i=>({idx:i,prompt:document.getElementById('pt'+i)?.value||prompts[i].prompt,
+    label:`Variação ${i+1}`,style:prompts[i]?.style,mood:prompts[i]?.mood,scene:prompts[i]?.scene}));
+  dDone=0; dTotal=jobs.length;
+  document.getElementById('sDone').textContent='0';
+  document.getElementById('sTotal').textContent=jobs.length;
+  document.getElementById('genIBtn').disabled=true;
+  jobs.forEach(j=>{
+    const c=document.createElement('div'); c.className='icard'; c.id='ic'+j.idx;
+    c.innerHTML=`<div class="ithumb shim" id="it${j.idx}"><div class="spin"></div><div style="font-size:9px">${j.label}</div></div>
+      <div class="imeta"><div class="ivar">${j.label}</div><div class="iprm">${j.prompt.substring(0,80)}…</div></div>
+      <div class="ifoot"><div class="istatus"><div class="dot pend"></div><span id="is${j.idx}">Na fila</span></div><div class="imod">${mdl}</div></div>`;
+    grid.appendChild(c);
+  });
+  log(`Disparando ${jobs.length} geração(ões)…`,'gen');
+  await Promise.all(jobs.map(j=>runGen(j,mdl,asp)));
+  log(`Concluído: ${dDone}/${dTotal}`,'ok');
+  document.getElementById('genIBtn').disabled=false; updateGenBtn();
+}
+
+async function runGen(job,mdl,asp){
+  const{idx,prompt,label,style,mood,scene}=job;
+  const sEl=document.getElementById('is'+idx), tEl=document.getElementById('it'+idx);
+  if(sEl) sEl.textContent='Enviando…';
+  const params={model:mdl,prompt,aspect_ratio:asp,quality:'2k'};
+  if(mdl==='soul_2'&&selSoul) params.soul_id=selSoul;
+  const prod=document.getElementById('prod').value.trim();
+  try{
+    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,
+        mcp_servers:[{type:'url',url:'https://mcp.higgsfield.ai/mcp',name:'higgs'}],
+        messages:[{role:'user',content:`Call Higgsfield generate_image with: ${JSON.stringify(params)}. Return ONLY the image URL.`}]})});
+    const data=await res.json();
+    let url=null;
+    const trs=(data.content||[]).filter(c=>c.type==='mcp_tool_result');
+    for(const tr of trs){
+      const raw=tr.content?.[0]?.text||JSON.stringify(tr.content||'');
+      const m=raw.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:[^\s"'<>]*)?/i);
+      if(m){url=m[0];break;}
+      try{const f=o=>{if(typeof o==='string'&&/\.(jpg|jpeg|png|webp)/i.test(o))return o;if(Array.isArray(o)){for(const v of o){const r=f(v);if(r)return r;}}if(o&&typeof o==='object'){for(const v of Object.values(o)){const r=f(v);if(r)return r;}}return null;};url=f(JSON.parse(raw));if(url)break;}catch{}
+    }
+    if(!url){const tx=(data.content||[]).filter(c=>c.type==='text').map(c=>c.text).join(' ');const m=tx.match(/https?:\/\/[^\s"'<>]+\.(?:jpg|jpeg|png|webp)(?:[^\s"'<>]*)?/i);if(m)url=m[0];}
+    if(url){
+      const likedThis=liked.some(l=>l.url===url);
+      if(tEl) tEl.innerHTML=`<img class="ireal" src="${url}" alt="${label}">
+        <button class="like-btn ${likedThis?'liked':''}" id="lb${idx}" onclick="toggleLike(${idx},'${url}',${JSON.stringify(prompt)},${JSON.stringify(style)},${JSON.stringify(mood)},${JSON.stringify(scene)},${JSON.stringify(prod)})">${likedThis?'♥':'♡'}</button>`;
+      if(sEl) sEl.textContent='Pronta';
+      const dot=document.querySelector(`#ic${idx} .dot`);
+      if(dot){dot.classList.remove('pend');dot.classList.add('done');}
+      dDone++; document.getElementById('sDone').textContent=dDone;
+      log(`[${label}] ✓ Pronta`,'ok');
+    } else {
+      if(tEl) tEl.innerHTML=`<div style="font-size:22px;opacity:.4">⏳</div><div style="font-size:9px;text-align:center;padding:8px">Processando…</div>`;
+      if(sEl) sEl.textContent='Processando';
+      dDone++; document.getElementById('sDone').textContent=dDone;
+      log(`[${label}] Job enviado`,'ok');
+    }
+  }catch(err){
+    if(tEl) tEl.innerHTML=`<div style="padding:12px;color:var(--er);font-size:10px">Erro: ${err.message}</div>`;
+    if(sEl) sEl.textContent='Erro';
+    log(`[${label}] ✗ ${err.message}`,'er');
+  }
+}
+
+function toggleLike(idx,url,prompt,style,mood,scene,product){
+  const btn=document.getElementById('lb'+idx);
+  const i=liked.findIndex(l=>l.url===url);
+  if(i>=0){liked.splice(i,1);btn.classList.remove('liked');btn.textContent='♡';log('Like removido.');}
+  else{liked.push({url,prompt,style,mood,scene,product,likedAt:new Date().toISOString()});btn.classList.add('liked');btn.textContent='♥';log(`♥ Curtida! Gosto: ${liked.length} likes`,'ok');}
+  persist(); updateInsight(); renderSaved(); updateBadge();
+}
+
+init();
+</script>
+</body>
+</html>
